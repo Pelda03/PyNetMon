@@ -9,6 +9,8 @@ class NetworkMonitor:
     def __init__(self):
         self.discovered_hosts = []
         self.failed_hosts = []
+        self.open_ports = []
+        self.closed_ports = []
 
     def try_connect(self, host, port):
         """
@@ -80,10 +82,56 @@ class NetworkMonitor:
         print("Failed hosts:", self.failed_hosts)
         return self.discovered_hosts, self.failed_hosts
 
-    def scan_ports(self, host):
-        """Scan open ports on a host."""
-        # Implement port scanning logic here
-        pass
+    def scan_ports(self, host, start_port=1, end_port=1024): # Idea: use nmap lib in the future instead of this?
+        """
+        Scan open ports on a host.
+        
+        
+         
+        This method attempts to establish a TCP connection to each port on the specified host in the range from start_port to end_port. 
+        If the connection is successful, the port is considered "open" and is added to the list of open ports. 
+        If the connection fails, the port is considered "closed".
+
+        Args:
+            host (str): The IP address of the host to scan.
+            start_port (int): The first port in the range to scan.
+            end_port (int): The last port in the range to scan.
+
+        Returns:
+            list: A list of open ports on the host.
+
+        Usage:
+            monitor = NetworkMonitor()
+            open_ports = monitor.scan_ports("10.112.23.90")
+            print("Open ports:", open_ports)
+        """
+        open_ports = []
+        closed_ports = []
+        threads = []
+
+        def try_connect(port):
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(1)
+            try:
+                s.connect((host, port))
+                open_ports.append(port)
+                print(f"Port {port} is open")
+            except socket.error as e:
+                closed_ports.append(port)
+                print(f"Port {port} is closed")
+            finally:
+                s.close()
+
+        for port in range(start_port, end_port + 1):
+            thread = threading.Thread(target=try_connect, args=(port,))
+            thread.start()
+            threads.append(thread)
+
+        # Wait for all threads to finish
+        for thread in threads:
+            thread.join()
+
+        return open_ports, closed_ports
 
     def monitor_http(self, host):
         """Monitor HTTP traffic of a host."""
@@ -100,5 +148,9 @@ class NetworkMonitor:
         # Use udp module to monitor UDP traffic
         pass
 
-monitor = NetworkMonitor()
-monitor.discover_hosts("10.112.23.0/24", 80)
+"""monitor = NetworkMonitor()
+#monitor.discover_hosts("10.112.23.0/24", 80)
+open_ports, closed_ports = monitor.scan_ports("10.116.74.101")
+print("Open ports:", open_ports)
+print("Closed ports:", closed_ports)
+"""
