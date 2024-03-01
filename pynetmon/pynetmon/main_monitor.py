@@ -1,7 +1,7 @@
 import ipaddress
 import socket
 import threading
-#from .protocols import http, tcp, udp
+from .protocols import http
 
 # SPAGHETTI CODE ALERT - This is a very basic implementation of a network monitor
 TODO = "Implment a less spaghetti code version of this class AND separate each method into its own class"
@@ -109,7 +109,20 @@ class NetworkMonitor:
         closed_ports = []
         threads = []
 
-        def try_connect(port):
+        def try_connect_port(port):
+            """
+            Attempt to connect to a host on a specific port.
+
+            This function is a helper function used within the `scan_ports` method. It tries to establish a TCP connection to the specified host on the specified port. 
+            If the connection is successful, the port is considered "open" and is added to the list of open ports. 
+            If the connection fails, the port is considered "closed" and is added to the list of closed ports.
+
+            Args:
+                port (int): The port to attempt to connect on.
+
+            Note:
+                This function is used internally by the `scan_ports` method and may not be useful to call directly.
+            """
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(1)
             try:
@@ -123,7 +136,7 @@ class NetworkMonitor:
                 s.close()
 
         for port in range(start_port, end_port + 1):
-            thread = threading.Thread(target=try_connect, args=(port,))
+            thread = threading.Thread(target=try_connect_port, args=(port,))
             thread.start()
             threads.append(thread)
 
