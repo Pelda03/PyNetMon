@@ -5,7 +5,7 @@ import concurrent.futures
 
 from .protocols.http import HTTPMonitor
 
-TOTAL_HOURS_WASTED_HERE = 6
+TOTAL_HOURS_WASTED_HERE = 7
 
 
 class ConnectionTester:
@@ -128,12 +128,12 @@ class PortScanner:
         Scans for open ports on a host.
     """
     
-    def __init__(self, start_port=1, end_port=1024):
+    def __init__(self):
         """Initializes the PortScanner with empty lists for open and closed ports."""
         self.open_ports = []
         self.closed_ports = []
 
-    def try_connect_port(self, params):
+    def connect_port(self, host, port):
         """
         Attempts to connect to a host on a specific port.
 
@@ -147,22 +147,19 @@ class PortScanner:
         port : int
             The port to connect on.
         """
-        host, port = params
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(1)
-        
-        #print(f"Connectint to {host} on port {port}...")
+        s.settimeout(10)
         
         
         try:
             s.connect((str(host), port))
             self.open_ports.append(port)
-        except:
+        except (ConnectionRefusedError, OSError):
             self.closed_ports.append(port)
         finally:
             s.close()
 
-    def scan_ports(self, host, start_port=1, end_port=1024):
+    def scan_ports(self, host, start_port=1, end_port=1024, ports=None): # hardcoded 1024 ports
         """
         Scans for open ports on a host.
 
@@ -175,9 +172,13 @@ class PortScanner:
         end_port : int, optional
             The port to stop scanning at (default is 1024).
         """
+        if ports is None:
+            ports = range(start_port, end_port + 1) #optional parameter
+        
         with concurrent.futures.ThreadPoolExecutor(max_workers=200) as executor:
-            executor.map(self.try_connect_port, [(host, port) for port in range(start_port, end_port + 1)])
-        return self.open_ports, self.closed_ports
+            executor.map(self.connect_port, [host] * len(ports), ports)
+        print("Open ports:", self.open_ports)
+        print("Closed ports:", self.closed_ports)
 
 class NetworkMonitor:
     """
@@ -210,6 +211,8 @@ class NetworkMonitor:
         """Initializes the NetworkMonitor with a new HostDiscoverer and PortScanner."""
         self.host_discoverer = HostDiscoverer()
         self.port_scanner = PortScanner()
+        self.httpmon = HTTPMonitor()
+
 
     def discover_hosts(self, subnet, port):
         """
@@ -225,7 +228,7 @@ class NetworkMonitor:
         
         return self.host_discoverer.discover_hosts(subnet, port)
 
-    def scan_open_ports(self, host, start_port=1, end_port=1024):
+    def scan_open_ports(self, host, start_port=1, end_port=1024): # call scan_open_ports if you're importing this class only, otherwise import PortScanner()
         """
         Scans for open ports on a host.
 
@@ -251,8 +254,9 @@ class NetworkMonitor:
             The host to monitor HTTP traffic on.
         """
         
-        #monitor = HTTPMonitor(host)
-        pass
+        
+        #return self.hhtpmon...?
+        #httpmon = HTTPMonitor(host)
 
     def monitor_tcp(self, host):
         """

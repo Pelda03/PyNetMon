@@ -7,7 +7,7 @@ monitor = NetworkMonitor()
 # dont print, its a built in function
 
 # Scan ports on a host
-open_ports, closed_ports = monitor.scan_open_ports("192.168.1.50")
+monitor.scan_open_ports("192.168.1.1") # or or call.scan_ports("IP"), start_port=123, end_port=126)
 #print("Open ports:", open_ports)
 #print("Closed ports:", closed_ports)
 
